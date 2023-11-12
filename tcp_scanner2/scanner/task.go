@@ -39,20 +39,38 @@ func AssignTask(tasks []map[string]int) {
 		RunTask(lastTask)
 	}
 }
+
+//	func RunTask(tasks []map[string]int) {
+//		var wg sync.WaitGroup
+//		// 将 WaitGroup 的计数器设置为任务的数量
+//		wg.Add(len(tasks))
+//		for _, task := range tasks {
+//			for ip, port := range task {
+//				go func(ip string, port int) {
+//					SaveResult(Connect(ip, port))
+//					// 减少计数器，表示一个任务已完成
+//					wg.Done()
+//				}(ip, port)
+//			}
+//		}
+//		// 阻塞主进程
+//		wg.Wait()
+//	}
 func RunTask(tasks []map[string]int) {
-	var wg sync.WaitGroup
-	// 将 WaitGroup 的计数器设置为任务的数量
-	wg.Add(len(tasks))
-	for _, task := range tasks {
-		for ip, port := range task {
-			go func(ip string, port int) {
-				SaveResult(Connect(ip, port))
-				// 减少计数器，表示一个任务已完成
-				wg.Done()
-			}(ip, port)
-		}
+	// WaitGroup 用于标记协程的完成状态
+	wg := &sync.WaitGroup{}
+
+	taskChan := make(chan map[string]int, vars.ThreadNum*2)
+
+	for i := 0; i < vars.ThreadNum; i++ {
+		go Scan(taskChan, wg)
 	}
-	// 阻塞主进程
+
+	for _, task := range tasks {
+		wg.Add(1)
+		taskChan <- task
+	}
+	close(taskChan)
 	wg.Wait()
 }
 

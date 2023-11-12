@@ -3,8 +3,18 @@ package scanner
 import (
 	"fmt"
 	"net"
+	"sync"
 	"time"
 )
+
+func Scan(taskChan chan map[string]int, wg *sync.WaitGroup) {
+	for task := range taskChan {
+		for ip, port := range task {
+			SaveResult(Connect(ip, port))
+			wg.Done()
+		}
+	}
+}
 
 func Connect(ip string, port int) (string, int, error) {
 	address := fmt.Sprintf("%s:%d", ip, port)
